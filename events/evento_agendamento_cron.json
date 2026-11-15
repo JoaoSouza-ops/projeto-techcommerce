@@ -1,0 +1,14 @@
+{
+  "version": "0",
+  "id": "9b1d4e77-3a12-4c08-9e11-002938475610",
+  "detail-type": "Scheduled Event",
+  "source": "aws.events",
+  "account": "123456789012",
+  "time": "2026-11-12T03:00:00Z",
+  "region": "sa-east-1",
+  "resources": [
+    "arn:aws:events:sa-east-1:123456789012:rule/techcommerce-relatorio-diario-vendas-prod"
+  ],
+  "tipo_relatorio": "FECHAMENTO_DIARIO",
+  "origem_disparo": "EventBridge-Scheduler-Cron (cron(0 3 * * ? *))"
+}

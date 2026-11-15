@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+  body { width: 1400px; height: 820px; background: #0f172a; color: #f8fafc; padding: 20px; overflow: hidden; }
+  .window {
+    width: 100%; height: 100%; background: #1e293b; border: 1.5px solid #475569;
+    border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+  }
+  .aws-nav {
+    background: #232f3e; padding: 10px 20px; display: flex; justify-content: space-between;
+    align-items: center; border-bottom: 2px solid #ff9900;
+  }
+  .aws-brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 15px; color: #ffffff; }
+  .aws-badge { background: #ff9900; color: #111827; padding: 3px 9px; border-radius: 4px; font-size: 12px; font-weight: 900; }
+  .aws-meta { font-size: 12px; color: #cbd5e1; font-family: Consolas, monospace; }
+  .content { padding: 16px 20px; display: grid; grid-template-columns: 420px 1fr; gap: 16px; flex: 1; overflow: hidden; }
+  .left-col { display: flex; flex-direction: column; gap: 12px; }
+  .panel {
+    background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px 14px;
+  }
+  .panel h3 { font-size: 13px; color: #ff9900; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; }
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .metric { background: #1e293b; padding: 8px 10px; border-radius: 6px; border-left: 3px solid #22c55e; }
+  .metric .val { font-size: 18px; font-weight: 800; color: #ffffff; }
+  .metric .lbl { font-size: 11px; color: #94a3b8; }
+  .table-mini { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .table-mini th, .table-mini td { text-align: left; padding: 6px 6px; border-bottom: 1px solid #1e293b; }
+  .table-mini th { color: #94a3b8; font-weight: 600; }
+  .status-ok { background: rgba(34,197,94,0.18); color: #4ade80; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10.5px; }
+  .status-warn { background: rgba(239,68,68,0.2); color: #f87171; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10.5px; }
+  .log-panel {
+    background: #090d16; border: 1px solid #334155; border-radius: 8px; padding: 14px;
+    font-family: Consolas, 'Courier New', monospace; font-size: 11.3px; line-height: 1.44;
+    color: #e2e8f0; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .log-line { margin-bottom: 3px; }
+  .c-eb { color: #f472b6; font-weight: 700; }
+  .c-start { color: #38bdf8; }
+  .c-info { color: #a7f3d0; }
+  .c-warn { color: #fca5a5; font-weight: 700; }
+  .c-sns { color: #c084fc; }
+  .c-s3 { color: #fde047; font-weight: 700; }
+  .c-rep { color: #94a3b8; background: rgba(255,255,255,0.04); padding: 2px 4px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="aws-nav">
+    <div class="aws-brand">
+      <span class="aws-badge">AWS</span>
+      <span>Amazon CloudWatch Logs &amp; EventBridge — Evidência de Execução Automatizada (TechCommerce)</span>
+    </div>
+    <div class="aws-meta">Região: sa-east-1 (São Paulo) | Stack: techcommerce-serverless-automation-prod</div>
+  </div>
+
+  <div class="content">
+    <div class="left-col">
+      <div class="panel">
+        <h3>📊 Métricas de Execução (Sem Intervenção Manual)</h3>
+        <div class="metric-grid">
+          <div class="metric"><div class="val">9 Eventos</div><div class="lbl">Roteados no EventBridge</div></div>
+          <div class="metric"><div class="val">8 Invocações</div><div class="lbl">Funções AWS Lambda (0 Erros)</div></div>
+          <div class="metric"><div class="val">~19.4 ms</div><div class="lbl">Latência Média por Função</div></div>
+          <div class="metric"><div class="val">R$ 10.099,90</div><div class="lbl">Receita Consolidada no S3</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>⚡ Funções Lambda Acionadas na Demonstração</h3>
+        <table class="table-mini">
+          <thead><tr><th>Função AWS Lambda</th><th>Gatilho</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>λ validadorPedidos</td><td>OrderCreated</td><td><span class="status-ok">200 OK (3x)</span></td></tr>
+            <tr><td>λ atualizadorStatus</td><td>OrderValidated</td><td><span class="status-ok">200 OK (2x)</span></td></tr>
+            <tr><td>λ notificadorEquipes</td><td>Status / Rejected</td><td><span class="status-ok">200 OK (3x)</span></td></tr>
+            <tr><td>λ geradorRelatoriosVendas</td><td>cron(0 3 * * ? *)</td><td><span class="status-ok">200 OK (1x)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h3>🗄️ Estado dos Pedidos no Amazon RDS Multi-AZ</h3>
+        <table class="table-mini">
+          <thead><tr><th>Pedido</th><th>Cliente</th><th>Valor</th><th>Status Final</th></tr></thead>
+          <tbody>
+            <tr><td>TC-2026-98410</td><td>Mariana Silva</td><td>R$ 5.199,90</td><td><span class="status-ok">EM SEPARAÇÃO</span></td></tr>
+            <tr><td>TC-2026-98411</td><td>Carlos Souza</td><td>R$ 4.900,00</td><td><span class="status-ok">EM SEPARAÇÃO</span></td></tr>
+            <tr><td>TC-2026-98412</td><td>Roberto Almeida</td><td>R$ 34.500,00</td><td><span class="status-warn">REJEITADO (FRAUDE)</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h3>🪣 Objetos Gravados no Bucket Amazon S3</h3>
+        <div style="font-family: Consolas, monospace; font-size: 11px; color: #fde047; line-height: 1.5;">
+          s3://techcommerce-relatorios-vendas-prod/<br>
+          ├── relatorios/2026/11/relatorio_vendas_2026-11-13.json (1.3 KB)<br>
+          └── relatorios/2026/11/relatorio_vendas_2026-11-13.csv (370 B)<br>
+          <span style="color:#94a3b8;">Criptografia: SSE-S3 (AES-256) | Durabilidade: 99,999999999%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div>
+        <div style="color:#ff9900; font-weight:700; margin-bottom:8px; border-bottom:1px solid #334155; padding-bottom:5px;">
+          Log Group: /aws/lambda/techcommerce-serverless-automation-prod • Stream: 2026/11/12/[$LATEST]9341d2f9
+        </div>
+
+        <div class="log-line c-eb">[AMAZON EVENTBRIDGE] Bus='techcommerce-event-bus-prod' | source='com.techcommerce.orders' | detail-type='OrderCreated' (TC-2026-98410)</div>
+        <div class="log-line c-start">START RequestId: 25084ccf-d9fc-4dfb-89c8-518aee7c44cc Version: $LATEST (validadorPedidos)</div>
+        <div class="log-line c-info">INFO [VALIDADOR_PEDIDOS] Iniciando validação automática do pedido TC-2026-98410 | Cliente: Mariana Costa Silva | Valor: R$ 5199.90</div>
+        <div class="log-line c-info">INFO [VALIDADOR_PEDIDOS] Pedido TC-2026-98410 VALIDADO com sucesso (2 itens verificados). Emitindo 'OrderValidated'.</div>
+        <div class="log-line c-rep">REPORT RequestId: 25084ccf-d9fc-4dfb-89c8-518aee7c44cc  Duration: 19.36 ms  Billed Duration: 20 ms  Memory Size: 256 MB  Max Memory: 74 MB</div>
+
+        <div class="log-line c-eb" style="margin-top:6px;">[AMAZON EVENTBRIDGE] Rule='rule-atualizador-status' matched 'OrderValidated' ➔ Target: atualizadorStatus</div>
+        <div class="log-line c-start">START RequestId: aa680621-35b7-43ff-9e03-4b81df2c3508 Version: $LATEST (atualizadorStatus)</div>
+        <div class="log-line c-info">INFO [ATUALIZADOR_STATUS] Atualizando status no Amazon RDS (Multi-AZ) para 'AGUARDANDO_SEPARACAO_LOGISTICA'.</div>
+        <div class="log-line c-info">INFO [ATUALIZADOR_STATUS] Transação TC-2026-98410 persistida no RDS e evento 'OrderStatusUpdated' publicado no EventBridge.</div>
+        <div class="log-line c-rep">REPORT RequestId: aa680621-35b7-43ff-9e03-4b81df2c3508  Duration: 19.20 ms  Billed Duration: 20 ms  Memory Size: 256 MB  Max Memory: 74 MB</div>
+
+        <div class="log-line c-eb" style="margin-top:6px;">[AMAZON EVENTBRIDGE] Rule='rule-notificador-equipes' matched 'OrderStatusUpdated' ➔ Target: notificadorEquipes</div>
+        <div class="log-line c-sns">   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-logistica-prod | Subject='[Expedição] Pedido TC-2026-98410'</div>
+        <div class="log-line c-sns">   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-atendimento-prod | Subject='[Atualização de Pedido] TC-2026-98410'</div>
+        <div class="log-line c-rep">REPORT RequestId: d1164d56-f9a4-4040-9b03-e8251eea06d5  Duration: 19.20 ms  Billed Duration: 20 ms  Memory Size: 256 MB  Max Memory: 74 MB</div>
+
+        <div class="log-line c-eb" style="margin-top:6px;">[AMAZON EVENTBRIDGE] Bus='techcommerce-event-bus-prod' | detail-type='OrderCreated' (TC-2026-98412 - Roberto Almeida)</div>
+        <div class="log-line c-warn">WARN [VALIDADOR_PEDIDOS] Pedido TC-2026-98412 REJEITADO. Motivos: Estoque insuficiente (SKU GPU-RTX-4090); Score antifraude elevado (92/100).</div>
+        <div class="log-line c-sns">   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-atendimento-prod | Subject='[Ação Necessária] Pedido Rejeitado TC-2026-98412'</div>
+
+        <div class="log-line c-eb" style="margin-top:6px;">[EVENTBRIDGE SCHEDULER] Disparo automático programado: cron(0 3 * * ? *) ➔ Target: geradorRelatoriosVendas</div>
+        <div class="log-line c-start">START RequestId: 78c12356-7a83-4807-a18f-0f8b5f9a7ed4 Version: $LATEST (geradorRelatoriosVendas)</div>
+        <div class="log-line c-info">INFO [GERADOR_RELATORIOS] Consultando Read Replica do Amazon RDS: techcommerce-db-read-replica.c9akciq32.sa-east-1.rds.amazonaws.com</div>
+        <div class="log-line c-s3">   [AWS S3 PUT_OBJECT] s3://techcommerce-relatorios-vendas-prod/relatorios/2026/11/relatorio_vendas_2026-11-13.json (1305 bytes)</div>
+        <div class="log-line c-s3">   [AWS S3 PUT_OBJECT] s3://techcommerce-relatorios-vendas-prod/relatorios/2026/11/relatorio_vendas_2026-11-13.csv (370 bytes)</div>
+        <div class="log-line c-sns">   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-logistica-prod | Subject='[Relatório Diário S3] Receita: R$ 10.099,90'</div>
+        <div class="log-line c-rep">REPORT RequestId: 78c12356-7a83-4807-a18f-0f8b5f9a7ed4  Duration: 21.44 ms  Billed Duration: 22 ms  Memory Size: 512 MB  Max Memory: 92 MB</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

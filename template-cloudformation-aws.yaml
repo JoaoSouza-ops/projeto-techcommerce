@@ -1,0 +1,487 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  TechCommerce - Arquitetura Serverless de Automacao de Processos com AWS Lambda,
+  Amazon EventBridge, Amazon S3, Amazon SNS e Amazon CloudWatch (100% Free Tier).
+
+Parameters:
+  EmailNotificacao:
+    Type: String
+    Description: Digite seu e-mail para receber em tempo real os alertas do Amazon SNS (Logistica, Atendimento e Relatorios).
+    AllowedPattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    ConstraintDescription: Insira um endereco de e-mail valido.
+
+Resources:
+  # ============================================================================
+  # 1. AMAZON S3 BUCKET (Armazenamento de Pedidos Processados e Relatórios)
+  # ============================================================================
+  TechCommerceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "techcommerce-automacao-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: CicloDeVidaRelatoriosTechCommerce
+            Status: Enabled
+            Transitions:
+              - StorageClass: STANDARD_IA
+                TransitionInDays: 30
+              - StorageClass: GLACIER
+                TransitionInDays: 90
+
+  # ============================================================================
+  # 2. AMAZON SNS TOPIC + ASSINATURA DE E-MAIL (Notificações em Tempo Real)
+  # ============================================================================
+  TechCommerceSnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: TechCommerce-Notificacoes-Operacionais
+      DisplayName: "TechCommerce Serverless Alertas"
+
+  TechCommerceSnsEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref TechCommerceSnsTopic
+      Protocol: email
+      Endpoint: !Ref EmailNotificacao
+
+  # ============================================================================
+  # 3. AWS IAM EXECUTION ROLE (Princípio do Menor Privilégio - Unidade 1)
+  # ============================================================================
+  TechCommerceLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "TechCommerce-Lambda-ExecutionRole-${AWS::Region}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: TechCommerceLeastPrivilegePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: PermitirPublicarEventosEventBridge
+                Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/default"
+              - Sid: PermitirLeituraEscritaBucketTechCommerce
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt TechCommerceBucket.Arn
+                  - !Sub "${TechCommerceBucket.Arn}/*"
+              - Sid: PermitirPublicarAlertasSNS
+                Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref TechCommerceSnsTopic
+
+  # ============================================================================
+  # 4. FUNÇÃO AWS LAMBDA #1: VALIDADOR DE PEDIDOS (Evento: OrderCreated)
+  # ============================================================================
+  LambdaValidadorPedidos:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: TechCommerce-1-ValidadorPedidos
+      Description: "Valida automaticamente pedidos recebidos (estoque, itens e score antifraude) via EventBridge."
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt TechCommerceLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          from datetime import datetime, timezone
+
+          events_client = boto3.client('events')
+
+          def lambda_handler(event, context):
+              detail = event.get('detail', {})
+              order_id = detail.get('order_id', 'TC-0000')
+              customer = detail.get('customer', {})
+              items = detail.get('items', [])
+              total = float(detail.get('total_amount', 0.0))
+              risk_score = detail.get('payment', {}).get('fraud_risk_score', 0)
+
+              print(f"[VALIDADOR_PEDIDOS] Iniciando validacao automatica do pedido {order_id} | Cliente: {customer.get('name')} | Valor: R$ {total:.2f}")
+
+              erros = []
+              if not items:
+                  erros.append("Pedido sem itens.")
+              for item in items:
+                  if item.get('stock_available', 0) < item.get('quantity', 0):
+                      erros.append(f"Estoque insuficiente para SKU {item.get('sku')} ({item.get('name')})")
+              if risk_score > 80:
+                  erros.append(f"Score antifraude elevado ({risk_score}/100)")
+
+              novo_evento = "OrderRejected" if erros else "OrderValidated"
+              status_val = "REJEITADO_NA_VALIDACAO" if erros else "VALIDADO_COM_SUCESSO"
+              print(f"[VALIDADOR_PEDIDOS] Resultado pedido {order_id}: {status_val} -> Emitindo evento '{novo_evento}' no EventBridge.")
+
+              payload = {
+                  **detail,
+                  "validation_status": status_val,
+                  "validation_errors": erros,
+                  "validated_at": datetime.now(timezone.utc).isoformat()
+              }
+
+              events_client.put_events(
+                  Entries=[{
+                      'Source': 'com.techcommerce.orders',
+                      'DetailType': novo_evento,
+                      'Detail': json.dumps(payload, ensure_ascii=False),
+                      'EventBusName': 'default'
+                  }]
+              )
+              return {"statusCode": 200, "order_id": order_id, "emitted_event": novo_evento}
+
+  # ============================================================================
+  # 5. FUNÇÃO AWS LAMBDA #2: ATUALIZADOR DE STATUS (Evento: OrderValidated)
+  # ============================================================================
+  LambdaAtualizadorStatus:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: TechCommerce-2-AtualizadorStatus
+      Description: "Atualiza o status da transacao e persiste o estado do pedido, emitindo OrderStatusUpdated."
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt TechCommerceLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref TechCommerceBucket
+      Code:
+        ZipFile: |
+          import json
+          import os
+          import boto3
+          from datetime import datetime, timezone
+
+          s3_client = boto3.client('s3')
+          events_client = boto3.client('events')
+          BUCKET_NAME = os.environ['BUCKET_NAME']
+
+          def lambda_handler(event, context):
+              detail = event.get('detail', {})
+              order_id = detail.get('order_id', 'TC-0000')
+              novo_status = "AGUARDANDO_SEPARACAO_LOGISTICA"
+              now_iso = datetime.now(timezone.utc).isoformat()
+
+              print(f"[ATUALIZADOR_STATUS] Atualizando status da transacao {order_id} para '{novo_status}'.")
+
+              registro_pedido = {
+                  "order_id": order_id,
+                  "customer": detail.get('customer', {}),
+                  "items": detail.get('items', []),
+                  "total_amount": float(detail.get('total_amount', 0.0)),
+                  "status": novo_status,
+                  "updated_at": now_iso
+              }
+
+              # Persiste o registro atualizado da transacao no Amazon S3
+              s3_key = f"transacoes/{order_id}.json"
+              s3_client.put_object(
+                  Bucket=BUCKET_NAME,
+                  Key=s3_key,
+                  Body=json.dumps(registro_pedido, indent=2, ensure_ascii=False).encode('utf-8'),
+                  ContentType='application/json'
+              )
+              print(f"[ATUALIZADOR_STATUS] Transacao persistida em s3://{BUCKET_NAME}/{s3_key}. Publicando 'OrderStatusUpdated'.")
+
+              events_client.put_events(
+                  Entries=[{
+                      'Source': 'com.techcommerce.orders',
+                      'DetailType': 'OrderStatusUpdated',
+                      'Detail': json.dumps(registro_pedido, ensure_ascii=False),
+                      'EventBusName': 'default'
+                  }]
+              )
+              return {"statusCode": 200, "order_id": order_id, "new_status": novo_status}
+
+  # ============================================================================
+  # 6. FUNÇÃO AWS LAMBDA #3: NOTIFICADOR DE EQUIPES (Amazon SNS)
+  # ============================================================================
+  LambdaNotificadorEquipes:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: TechCommerce-3-NotificadorEquipes
+      Description: "Envia notificacoes automaticas em tempo real via Amazon SNS para Logistica e Atendimento."
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt TechCommerceLambdaRole.Arn
+      Timeout: 15
+      MemorySize: 256
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref TechCommerceSnsTopic
+      Code:
+        ZipFile: |
+          import json
+          import os
+          import boto3
+
+          sns_client = boto3.client('sns')
+          SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
+
+          def lambda_handler(event, context):
+              detail_type = event.get('detail-type', '')
+              detail = event.get('detail', {})
+              order_id = detail.get('order_id', 'TC-0000')
+              customer = detail.get('customer', {})
+              total = float(detail.get('total_amount', 0.0))
+
+              if detail_type == 'OrderStatusUpdated':
+                  status = detail.get('status', 'EM_SEPARACAO')
+                  assunto = f"[TechCommerce Logistica & Atendimento] Pedido {order_id} Aprovado"
+                  mensagem = (
+                      f"NOTIFICACAO AUTOMATICA SERVERLESS - TECHCOMMERCE\n"
+                      f"------------------------------------------------\n"
+                      f"Pedido: {order_id}\n"
+                      f"Cliente: {customer.get('name')} ({customer.get('email')})\n"
+                      f"Cidade/UF: {customer.get('city', 'SP')}/{customer.get('state', 'SP')}\n"
+                      f"Valor Total: R$ {total:.2f}\n"
+                      f"Novo Status: {status}\n\n"
+                      f"Acao Logistica: Iniciar separacao fisica (picking/packing) e expedicao.\n"
+                      f"Acao Atendimento: Notificacao automatica enviada ao cliente."
+                  )
+              else:
+                  motivos = ", ".join(detail.get('validation_errors', ['Inconsistencia']))
+                  assunto = f"[TechCommerce ALERTA ATENDIMENTO] Pedido {order_id} Rejeitado"
+                  mensagem = (
+                      f"ALERTA DE EXCECAO / ANTIFRAUDE - TECHCOMMERCE\n"
+                      f"---------------------------------------------\n"
+                      f"Pedido: {order_id} | Cliente: {customer.get('name')}\n"
+                      f"Valor: R$ {total:.2f}\n"
+                      f"Motivos da Rejeicao: {motivos}\n"
+                      f"Acao Necessaria: Equipe de Atendimento deve verificar o pedido."
+                  )
+
+              resp = sns_client.publish(
+                  TopicArn=SNS_TOPIC_ARN,
+                  Subject=assunto[:100],
+                  Message=mensagem
+              )
+              print(f"[NOTIFICADOR_EQUIPES] Alerta SNS publicado com sucesso! MessageId={resp.get('MessageId')}")
+              return {"statusCode": 200, "order_id": order_id, "sns_message_id": resp.get('MessageId')}
+
+  # ============================================================================
+  # 7. FUNÇÃO AWS LAMBDA #4: GERADOR AGENDADO DE RELATÓRIOS DE VENDAS (Cron -> S3)
+  # ============================================================================
+  LambdaGeradorRelatorios:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: TechCommerce-4-GeradorRelatoriosVendas
+      Description: "Executada por agendamento no EventBridge. Consolida as vendas e salva relatorio JSON/CSV no Amazon S3."
+      Runtime: python3.12
+      Handler: index.lambda_handler
+      Role: !GetAtt TechCommerceLambdaRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref TechCommerceBucket
+          SNS_TOPIC_ARN: !Ref TechCommerceSnsTopic
+      Code:
+        ZipFile: |
+          import csv
+          import io
+          import json
+          import os
+          import boto3
+          from datetime import datetime, timezone
+
+          s3_client = boto3.client('s3')
+          sns_client = boto3.client('sns')
+          BUCKET_NAME = os.environ['BUCKET_NAME']
+          SNS_TOPIC_ARN = os.environ['SNS_TOPIC_ARN']
+
+          def lambda_handler(event, context):
+              agora = datetime.now(timezone.utc)
+              data_str = agora.strftime('%Y-%m-%d_%H-%M-%S')
+              print(f"[GERADOR_RELATORIOS] Disparo automatico por agendamento EventBridge em {agora.isoformat()}")
+
+              # Lista as transacoes gravadas no bucket S3
+              pedidos = []
+              resp = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix='transacoes/')
+              for obj in resp.get('Contents', []):
+                  body = s3_client.get_object(Bucket=BUCKET_NAME, Key=obj['Key'])['Body'].read().decode('utf-8')
+                  pedidos.append(json.loads(body))
+
+              receita_total = sum(float(p.get('total_amount', 0.0)) for p in pedidos)
+              ticket_medio = receita_total / len(pedidos) if pedidos else 0.0
+
+              relatorio = {
+                  "empresa": "TechCommerce E-Commerce",
+                  "gerado_em_utc": agora.isoformat(),
+                  "gatilho": "Amazon EventBridge Scheduled Rule",
+                  "total_pedidos_processados": len(pedidos),
+                  "receita_total_brl": round(receita_total, 2),
+                  "ticket_medio_brl": round(ticket_medio, 2),
+                  "pedidos": pedidos
+              }
+
+              key_json = f"relatorios/relatorio_vendas_{data_str}.json"
+              s3_client.put_object(
+                  Bucket=BUCKET_NAME,
+                  Key=key_json,
+                  Body=json.dumps(relatorio, indent=2, ensure_ascii=False).encode('utf-8'),
+                  ContentType='application/json'
+              )
+
+              buf_csv = io.StringIO()
+              writer = csv.writer(buf_csv)
+              writer.writerow(["order_id", "customer_name", "status", "total_amount_brl", "updated_at"])
+              for p in pedidos:
+                  writer.writerow([
+                      p.get("order_id"),
+                      p.get("customer", {}).get("name"),
+                      p.get("status"),
+                      p.get("total_amount"),
+                      p.get("updated_at")
+                  ])
+              key_csv = f"relatorios/relatorio_vendas_{data_str}.csv"
+              s3_client.put_object(
+                  Bucket=BUCKET_NAME,
+                  Key=key_csv,
+                  Body=buf_csv.getvalue().encode('utf-8'),
+                  ContentType='text/csv'
+              )
+
+              print(f"[GERADOR_RELATORIOS] Relatorios salvos no S3: s3://{BUCKET_NAME}/{key_json} | Receita: R$ {receita_total:.2f}")
+
+              sns_client.publish(
+                  TopicArn=SNS_TOPIC_ARN,
+                  Subject=f"[TechCommerce S3] Relatorio Automatico de Vendas Gerado",
+                  Message=(
+                      f"RELATORIO AUTOMATICO DE VENDAS - TECHCOMMERCE\n"
+                      f"---------------------------------------------\n"
+                      f"Data/Hora UTC: {agora.isoformat()}\n"
+                      f"Pedidos Aprovados Consolidados: {len(pedidos)}\n"
+                      f"Receita Total: R$ {receita_total:.2f}\n"
+                      f"Ticket Medio: R$ {ticket_medio:.2f}\n"
+                      f"Arquivo JSON no S3: s3://{BUCKET_NAME}/{key_json}\n"
+                      f"Arquivo CSV no S3: s3://{BUCKET_NAME}/{key_csv}"
+                  )
+              )
+              return {"statusCode": 200, "s3_report_json": key_json, "s3_report_csv": key_csv, "receita_total": receita_total}
+
+  # ============================================================================
+  # 8. REGRAS DO AMAZON EVENTBRIDGE (Eventos da Aplicação + Agendamento Cron)
+  # ============================================================================
+  RuleValidadorPedidos:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: TechCommerce-Rule-1-OrderCreated
+      Description: "Dispara a Lambda ValidadorPedidos quando um evento OrderCreated chega ao EventBridge."
+      State: ENABLED
+      EventPattern:
+        source:
+          - com.techcommerce.orders
+        detail-type:
+          - OrderCreated
+      Targets:
+        - Id: TargetLambdaValidador
+          Arn: !GetAtt LambdaValidadorPedidos.Arn
+
+  PermissionInvokeValidador:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaValidadorPedidos
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt RuleValidadorPedidos.Arn
+
+  RuleAtualizadorStatus:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: TechCommerce-Rule-2-OrderValidated
+      Description: "Dispara a Lambda AtualizadorStatus quando o pedido e validado com sucesso."
+      State: ENABLED
+      EventPattern:
+        source:
+          - com.techcommerce.orders
+        detail-type:
+          - OrderValidated
+      Targets:
+        - Id: TargetLambdaAtualizador
+          Arn: !GetAtt LambdaAtualizadorStatus.Arn
+
+  PermissionInvokeAtualizador:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaAtualizadorStatus
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt RuleAtualizadorStatus.Arn
+
+  RuleNotificadorEquipes:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: TechCommerce-Rule-3-NotificarEquipes
+      Description: "Dispara a Lambda NotificadorEquipes quando o status e atualizado ou o pedido e rejeitado."
+      State: ENABLED
+      EventPattern:
+        source:
+          - com.techcommerce.orders
+        detail-type:
+          - OrderStatusUpdated
+          - OrderRejected
+      Targets:
+        - Id: TargetLambdaNotificador
+          Arn: !GetAtt LambdaNotificadorEquipes.Arn
+
+  PermissionInvokeNotificador:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaNotificadorEquipes
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt RuleNotificadorEquipes.Arn
+
+  RuleRelatorioAgendadoDiario:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: TechCommerce-Rule-4-RelatorioAgendadoCron
+      Description: "Agendamento programado Cron (diario as 03:00 UTC / 00:00 BRT) para geracao automatica de relatorios de vendas no S3."
+      State: ENABLED
+      ScheduleExpression: "cron(0 3 * * ? *)"
+      Targets:
+        - Id: TargetLambdaRelatorio
+          Arn: !GetAtt LambdaGeradorRelatorios.Arn
+
+  PermissionInvokeRelatorio:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LambdaGeradorRelatorios
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt RuleRelatorioAgendadoDiario.Arn
+
+Outputs:
+  NomeBucketS3:
+    Description: "Bucket S3 criado para armazenar transacoes e relatorios de vendas"
+    Value: !Ref TechCommerceBucket
+  TopicoSNSArn:
+    Description: "ARN do Topico Amazon SNS para alertas de Logistica e Atendimento"
+    Value: !Ref TechCommerceSnsTopic

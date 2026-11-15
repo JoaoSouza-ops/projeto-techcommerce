@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+  body { width: 1400px; height: 860px; background: #0f172a; color: #f8fafc; padding: 24px; overflow: hidden; }
+  .board {
+    width: 100%; height: 100%; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border: 2px solid #334155; border-radius: 16px; padding: 20px 26px; position: relative;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid #334155; padding-bottom: 12px;
+  }
+  .header-title h1 { font-size: 23px; color: #ff9900; font-weight: 800; letter-spacing: 0.4px; }
+  .header-title p { font-size: 13px; color: #94a3b8; margin-top: 3px; }
+  .region-badge {
+    background: rgba(255, 153, 0, 0.14); border: 1.5px solid #ff9900; color: #ff9900;
+    padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 700;
+  }
+  .aws-cloud {
+    border: 2px dashed #ff9900; border-radius: 14px; padding: 16px 20px; position: relative;
+    flex: 1; margin: 14px 0; display: grid; grid-template-columns: 230px 270px 340px 380px;
+    gap: 20px; align-items: center; background: rgba(15, 23, 42, 0.55);
+  }
+  .cloud-label {
+    position: absolute; top: -13px; left: 22px; background: #0f172a; padding: 2px 12px;
+    color: #ff9900; font-weight: 800; font-size: 13px; border: 1px solid #ff9900; border-radius: 6px;
+  }
+  .col { display: flex; flex-direction: column; gap: 14px; height: 100%; justify-content: center; }
+  .card {
+    background: #1e293b; border: 1.5px solid #475569; border-radius: 11px; padding: 12px 14px;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.35); position: relative;
+  }
+  .card-source { border-color: #38bdf8; background: linear-gradient(180deg, #0c4a6e 0%, #1e293b 100%); }
+  .card-eb { border-color: #ec4899; background: linear-gradient(180deg, #831843 0%, #1e293b 100%); }
+  .card-lambda { border-color: #f97316; background: linear-gradient(180deg, #7c2d12 0%, #1e293b 100%); }
+  .card-data { border-color: #22c55e; background: linear-gradient(180deg, #14532d 0%, #1e293b 100%); }
+  .card-sns { border-color: #a855f7; background: linear-gradient(180deg, #4c1d95 0%, #1e293b 100%); }
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 800; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; margin-bottom: 5px; letter-spacing: 0.5px;
+  }
+  .tag-blue { background: #0284c7; color: #fff; }
+  .tag-pink { background: #db2777; color: #fff; }
+  .tag-orange { background: #ea580c; color: #fff; }
+  .tag-green { background: #16a34a; color: #fff; }
+  .tag-purple { background: #9333ea; color: #fff; }
+  .card h3 { font-size: 14px; color: #ffffff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .card p { font-size: 11.5px; color: #cbd5e1; line-height: 1.35; }
+  .code-pill {
+    margin-top: 6px; background: #0f172a; border: 1px solid #334155; border-radius: 5px;
+    padding: 4px 7px; font-family: Consolas, monospace; font-size: 10.5px; color: #fde047;
+  }
+  .arrow-hint {
+    font-size: 11px; color: #94a3b8; text-align: center; font-weight: 600;
+    background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 6px;
+  }
+  .bottom-bar {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+  }
+  .gov-box {
+    background: rgba(30, 41, 59, 0.9); border: 1.5px solid #eab308; border-radius: 10px;
+    padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .gov-box.cw { border-color: #06b6d4; }
+  .gov-title { font-size: 13px; font-weight: 800; color: #fef08a; margin-bottom: 3px; }
+  .gov-box.cw .gov-title { color: #67e8f9; }
+  .gov-desc { font-size: 11.5px; color: #cbd5e1; }
+  .badge-pill {
+    background: #0f172a; border: 1px solid #475569; padding: 5px 10px; border-radius: 6px;
+    font-size: 11px; font-weight: 700; color: #f8fafc; white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="board">
+  <div class="header">
+    <div class="header-title">
+      <h1>ARQUITETURA SERVERLESS ORIENTADA A EVENTOS — TECHCOMMERCE (AWS)</h1>
+      <p>Automação de Processos em Nuvem com AWS Lambda, Amazon EventBridge, Amazon RDS Multi-AZ, Amazon S3 e Amazon SNS</p>
+    </div>
+    <div class="region-badge">AWS Region: sa-east-1 (São Paulo) • Multi-AZ</div>
+  </div>
+
+  <div class="aws-cloud">
+    <div class="cloud-label">AWS Cloud • Infraestrutura Gerenciada Serverless</div>
+
+    <!-- COLUNA 1: FONTES DE EVENTOS -->
+    <div class="col">
+      <div class="card card-source">
+        <span class="tag tag-blue">Produtor de Eventos</span>
+        <h3>🛒 Plataforma E-Commerce</h3>
+        <p>Checkout Web/Mobile &amp; API Gateway recebem milhares de pedidos em picos promocionais.</p>
+        <div class="code-pill">source: com.techcommerce.orders<br>detail-type: OrderCreated</div>
+      </div>
+
+      <div class="card card-source">
+        <span class="tag tag-blue">Produtor de Eventos</span>
+        <h3>💳 Gateway de Pagamento</h3>
+        <p>Processamento PIX e Cartão de Crédito com score antifraude em tempo real.</p>
+        <div class="code-pill">source: com.techcommerce.payments<br>detail-type: PaymentApproved</div>
+      </div>
+
+      <div class="card card-eb">
+        <span class="tag tag-pink">Agendador Serverless</span>
+        <h3>⏰ EventBridge Scheduler</h3>
+        <p>Disparo automático programado sem intervenção humana para relatórios.</p>
+        <div class="code-pill">cron(0 3 * * ? *) → Diário 00h BRT<br>rate(1 hour) → Pico Black Friday</div>
+      </div>
+    </div>
+
+    <!-- COLUNA 2: BARRAMENTO DE EVENTOS -->
+    <div class="col">
+      <div class="card card-eb" style="padding: 18px 14px;">
+        <span class="tag tag-pink">Core Event Bus</span>
+        <h3>🔀 Amazon EventBridge</h3>
+        <p>Barramento customizado <b>techcommerce-event-bus-prod</b>. Filtra payloads JSON e roteia eventos de forma assíncrona e desacoplada.</p>
+        <div class="code-pill" style="margin-top:10px;">
+          • Rule 1: OrderCreated ➔ Validador<br>
+          • Rule 2: OrderValidated / PaymentApproved ➔ Atualizador<br>
+          • Rule 3: OrderStatusUpdated / Rejected ➔ Notificador<br>
+          • Rule 4: Schedule Cron/Rate ➔ Relatórios
+        </div>
+        <div class="arrow-hint" style="margin-top:10px;">⚡ Desacoplamento Total (Loose Coupling) &amp; Retry Automático + DLQ</div>
+      </div>
+    </div>
+
+    <!-- COLUNA 3: CAMADA DE COMPUTAÇÃO SERVERLESS (AWS LAMBDA) -->
+    <div class="col">
+      <div class="card card-lambda">
+        <span class="tag tag-orange">AWS Lambda #1 • Python 3.12</span>
+        <h3>λ validadorPedidos</h3>
+        <p>Valida itens, disponibilidade de estoque e score antifraude. Emite <b>OrderValidated</b> ou <b>OrderRejected</b> ao EventBridge.</p>
+      </div>
+
+      <div class="card card-lambda">
+        <span class="tag tag-orange">AWS Lambda #2 • Python 3.12</span>
+        <h3>λ atualizadorStatus</h3>
+        <p>Atualiza o status transacional do pedido no banco relacional gerenciado e publica <b>OrderStatusUpdated</b>.</p>
+      </div>
+
+      <div class="card card-lambda">
+        <span class="tag tag-orange">AWS Lambda #3 • Python 3.12</span>
+        <h3>λ notificadorEquipes</h3>
+        <p>Formata alertas operacionais e publica nos tópicos do Amazon SNS para Logística e Atendimento.</p>
+      </div>
+
+      <div class="card card-lambda">
+        <span class="tag tag-orange">AWS Lambda #4 • Python 3.12</span>
+        <h3>λ geradorRelatoriosVendas</h3>
+        <p>Acionada via Cron. Consulta a Read Replica do RDS, gera relatórios JSON/CSV e grava no Amazon S3.</p>
+      </div>
+    </div>
+
+    <!-- COLUNA 4: PERSISTÊNCIA, ARMAZENAMENTO E NOTIFICAÇÕES -->
+    <div class="col">
+      <div class="card card-data">
+        <span class="tag tag-green">Banco Gerenciado (Unidade 3)</span>
+        <h3>🗄️ Amazon RDS (PostgreSQL Multi-AZ)</h3>
+        <p><b>Instância Principal (Multi-AZ):</b> Escrita transacional de pedidos com failover automático.<br>
+        <b>Read Replica:</b> Leitura isolada para geração de relatórios sem onerar o checkout.</p>
+      </div>
+
+      <div class="card card-sns">
+        <span class="tag tag-purple">Mensageria Pub/Sub (Unidade 2)</span>
+        <h3>📣 Amazon SNS (Notificações)</h3>
+        <p>• <b>Tópico Logística:</b> Dispara separação de estoque e expedição (Webhook/E-mail).<br>
+        • <b>Tópico Atendimento:</b> Notifica cliente e CRM sobre status ou rejeição antifraude.</p>
+      </div>
+
+      <div class="card card-data">
+        <span class="tag tag-green">Object Storage (Unidade 2)</span>
+        <h3>🪣 Amazon S3 (11 Noves Durabilidade)</h3>
+        <p>Bucket privado <b>techcommerce-relatorios-vendas</b> com criptografia AES-256 e <b>Lifecycle Policy</b>:</p>
+        <div class="code-pill">S3 Standard (0-30d) ➔ Standard-IA (30d) ➔ S3 Glacier (90d)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BARRA INFERIOR: SEGURANÇA (IAM) E OBSERVABILIDADE (CLOUDWATCH) -->
+  <div class="bottom-bar">
+    <div class="gov-box">
+      <div>
+        <div class="gov-title">🔐 AWS IAM &amp; Secrets Manager — Governança e Menor Privilégio (Unidade 1 e 2)</div>
+        <div class="gov-desc">Execution Roles exclusivas por função Lambda (Least Privilege: s3:PutObject, sns:Publish, events:PutEvents) e credenciais de banco protegidas.</div>
+      </div>
+      <div class="badge-pill">Zero Hardcoded Secrets</div>
+    </div>
+
+    <div class="gov-box cw">
+      <div>
+        <div class="gov-title">📊 Amazon CloudWatch + SNS — Observabilidade e Alarmes em Tempo Real (Unidade 2)</div>
+        <div class="gov-desc">Coleta centralizada de logs (RequestId, Billed Duration) e métricas (Invocations, Errors, Throttles) com alertas proativos via SNS.</div>
+      </div>
+      <div class="badge-pill">Monitoramento 24/7</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

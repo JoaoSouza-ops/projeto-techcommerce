@@ -1,0 +1,99 @@
+====================================================================================================
+TECHCOMMERCE - DEMONSTRAÇÃO DE AUTOMAÇÃO SERVERLESS (AWS LAMBDA + AMAZON EVENTBRIDGE)
+Data/Hora da Execução: 2026-11-13T01:10:14.337108+00:00 | Região AWS: sa-east-1 (São Paulo)
+====================================================================================================
+
+>>> [CENÁRIO 1] Aplicação publica evento 'OrderCreated' (Pedido #TC-2026-98410 - Mariana Costa Silva)
+
+[AMAZON EVENTBRIDGE] Evento recebido no barramento 'techcommerce-event-bus-prod': source='com.techcommerce.orders' | detail-type='OrderCreated' | id=022955f9-7e20-4cf2-aea5-97055a2c86a6
+   └── [EVENTBRIDGE RULE MATCH] Regra 'rule-validador-pedidos' acionou Target Lambda: techcommerce-serverless-automation-prod-validadorPedidos
+START RequestId: 842c6605-b1d4-4f83-a59b-48bac188e3e4 Version: $LATEST (techcommerce-serverless-automation-prod-validadorPedidos)
+2026-11-13T01:10:14.339Z	INFO	[VALIDADOR_PEDIDOS] Iniciando validação automática do pedido TC-2026-98410 | Cliente: Mariana Costa Silva | Valor Total: R$ 5199.90
+2026-11-13T01:10:14.339Z	INFO	[VALIDADOR_PEDIDOS] Pedido TC-2026-98410 VALIDADO com sucesso (2 itens verificados).
+
+[AMAZON EVENTBRIDGE] Evento recebido no barramento 'techcommerce-event-bus-prod': source='com.techcommerce.orders' | detail-type='OrderValidated' | id=7aa72059-f79b-4038-84fa-6e3494c6a7f1
+   └── [EVENTBRIDGE RULE MATCH] Regra 'rule-atualizador-status' acionou Target Lambda: techcommerce-serverless-automation-prod-atualizadorStatus
+START RequestId: 2b222363-7551-4df2-a1a1-7d17aa4d2839 Version: $LATEST (techcommerce-serverless-automation-prod-atualizadorStatus)
+2026-11-13T01:10:14.340Z	INFO	[ATUALIZADOR_STATUS] Evento recebido: 'OrderValidated' para o pedido TC-2026-98410. Atualizando status no Amazon RDS (Multi-AZ) para 'AGUARDANDO_SEPARACAO_LOGISTICA'.
+
+[AMAZON EVENTBRIDGE] Evento recebido no barramento 'techcommerce-event-bus-prod': source='com.techcommerce.orders' | detail-type='OrderStatusUpdated' | id=bf4be1c5-6c04-49d7-ab90-71b8f420e7d3
+   └── [EVENTBRIDGE RULE MATCH] Regra 'rule-notificador-equipes' acionou Target Lambda: techcommerce-serverless-automation-prod-notificadorEquipes
+START RequestId: d4a7bec6-363f-4c14-8854-ac41063ecfc5 Version: $LATEST (techcommerce-serverless-automation-prod-notificadorEquipes)
+   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-logistica-prod | MessageId=96dc791c-4729-4302-ac55-271fa310f9ba | Subject='[Expedição] Pedido TC-2026-98410 - AGUARDANDO_SEPARACAO_LOGISTICA'
+      └── Payload: [LOGÍSTICA TECHCOMMERCE] Pedido TC-2026-98410 liberado para expedição | Status: AGUARDANDO_SEPARACAO_LOGISTICA | Itens: 3 | Destino: São Paulo/SP
+   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-atendimento-prod | MessageId=eae7945a-b7e4-4dd5-be75-f61eaad8cc40 | Subject='[Atualização de Pedido] TC-2026-98410'
+      └── Payload: [ATENDIMENTO TECHCOMMERCE] Status do pedido TC-2026-98410 do cliente Mariana Costa Silva (mariana.silva@email.com.br) atualizado para: AGUARDANDO_SEPARACAO_LOGISTICA.
+2026-11-13T01:10:14.340Z	INFO	[NOTIFICADOR_EQUIPES] Alertas SNS enviados para Logística e Atendimento referente ao pedido TC-2026-98410.
+END RequestId: d4a7bec6-363f-4c14-8854-ac41063ecfc5
+REPORT RequestId: d4a7bec6-363f-4c14-8854-ac41063ecfc5	Duration: 19.20 ms	Billed Duration: 20 ms	Memory Size: 256 MB	Max Memory Used: 74 MB
+2026-11-13T01:10:14.341Z	INFO	[ATUALIZADOR_STATUS] Transação TC-2026-98410 persistida no Amazon RDS e evento 'OrderStatusUpdated' publicado no EventBridge.
+END RequestId: 2b222363-7551-4df2-a1a1-7d17aa4d2839
+REPORT RequestId: 2b222363-7551-4df2-a1a1-7d17aa4d2839	Duration: 19.53 ms	Billed Duration: 20 ms	Memory Size: 256 MB	Max Memory Used: 74 MB
+END RequestId: 842c6605-b1d4-4f83-a59b-48bac188e3e4
+REPORT RequestId: 842c6605-b1d4-4f83-a59b-48bac188e3e4	Duration: 20.41 ms	Billed Duration: 21 ms	Memory Size: 256 MB	Max Memory Used: 74 MB
+
+>>> [CENÁRIO 2] Aplicação publica evento 'OrderCreated' (Pedido #TC-2026-98411 - Carlos Eduardo Souza)
+
+[AMAZON EVENTBRIDGE] Evento recebido no barramento 'techcommerce-event-bus-prod': source='com.techcommerce.orders' | detail-type='OrderCreated' | id=763283a0-9c64-40bf-a5ca-673a3a524483
+   └── [EVENTBRIDGE RULE MATCH] Regra 'rule-validador-pedidos' acionou Target Lambda: techcommerce-serverless-automation-prod-validadorPedidos
+START RequestId: 1df96558-2a6b-4d85-a6e4-b27bd379f5a3 Version: $LATEST (techcommerce-serverless-automation-prod-validadorPedidos)
+2026-11-13T01:10:14.341Z	INFO	[VALIDADOR_PEDIDOS] Iniciando validação automática do pedido TC-2026-98411 | Cliente: Carlos Eduardo Souza | Valor Total: R$ 4900.00
+2026-11-13T01:10:14.341Z	INFO	[VALIDADOR_PEDIDOS] Pedido TC-2026-98411 VALIDADO com sucesso (1 itens verificados).
+
+[AMAZON EVENTBRIDGE] Evento recebido no barramento 'techcommerce-event-bus-prod': source='com.techcommerce.orders' | detail-type='OrderValidated' | id=7fdae31c-868f-4a5f-b2ac-05944db4164b
+   └── [EVENTBRIDGE RULE MATCH] Regra 'rule-atualizador-status' acionou Target Lambda: techcommerce-serverless-automation-prod-atualizadorStatus
+START RequestId: 0033d3b7-976d-4334-8622-3209f3ff3391 Version: $LATEST (techcommerce-serverless-automation-prod-atualizadorStatus)
+2026-11-13T01:10:14.342Z	INFO	[ATUALIZADOR_STATUS] Evento recebido: 'OrderValidated' para o pedido TC-2026-98411. Atualizando status no Amazon RDS (Multi-AZ) para 'AGUARDANDO_SEPARACAO_LOGISTICA'.
+
+[AMAZON EVENTBRIDGE] Evento recebido no barramento 'techcommerce-event-bus-prod': source='com.techcommerce.orders' | detail-type='OrderStatusUpdated' | id=936c7e0b-f59c-44e5-9c2d-172423f2854e
+   └── [EVENTBRIDGE RULE MATCH] Regra 'rule-notificador-equipes' acionou Target Lambda: techcommerce-serverless-automation-prod-notificadorEquipes
+START RequestId: c040d3a5-9eac-4e27-9c6f-9c264d949c45 Version: $LATEST (techcommerce-serverless-automation-prod-notificadorEquipes)
+   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-logistica-prod | MessageId=cbdc2ac8-baaf-47cd-81b4-679e26b16da6 | Subject='[Expedição] Pedido TC-2026-98411 - AGUARDANDO_SEPARACAO_LOGISTICA'
+      └── Payload: [LOGÍSTICA TECHCOMMERCE] Pedido TC-2026-98411 liberado para expedição | Status: AGUARDANDO_SEPARACAO_LOGISTICA | Itens: 2 | Destino: Curitiba/PR
+   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-atendimento-prod | MessageId=987a3185-3d2e-4b71-9f9e-38bc16c3d3a1 | Subject='[Atualização de Pedido] TC-2026-98411'
+      └── Payload: [ATENDIMENTO TECHCOMMERCE] Status do pedido TC-2026-98411 do cliente Carlos Eduardo Souza (carlos.souza@empresa.com.br) atualizado para: AGUARDANDO_SEPARACAO_LOGISTICA.
+2026-11-13T01:10:14.342Z	INFO	[NOTIFICADOR_EQUIPES] Alertas SNS enviados para Logística e Atendimento referente ao pedido TC-2026-98411.
+END RequestId: c040d3a5-9eac-4e27-9c6f-9c264d949c45
+REPORT RequestId: c040d3a5-9eac-4e27-9c6f-9c264d949c45	Duration: 19.20 ms	Billed Duration: 20 ms	Memory Size: 256 MB	Max Memory Used: 74 MB
+2026-11-13T01:10:14.343Z	INFO	[ATUALIZADOR_STATUS] Transação TC-2026-98411 persistida no Amazon RDS e evento 'OrderStatusUpdated' publicado no EventBridge.
+END RequestId: 0033d3b7-976d-4334-8622-3209f3ff3391
+REPORT RequestId: 0033d3b7-976d-4334-8622-3209f3ff3391	Duration: 19.43 ms	Billed Duration: 20 ms	Memory Size: 256 MB	Max Memory Used: 74 MB
+END RequestId: 1df96558-2a6b-4d85-a6e4-b27bd379f5a3
+REPORT RequestId: 1df96558-2a6b-4d85-a6e4-b27bd379f5a3	Duration: 20.12 ms	Billed Duration: 21 ms	Memory Size: 256 MB	Max Memory Used: 74 MB
+
+>>> [CENÁRIO 3] Aplicação publica evento 'OrderCreated' (Pedido #TC-2026-98412 - Suspeita Antifraude)
+
+[AMAZON EVENTBRIDGE] Evento recebido no barramento 'techcommerce-event-bus-prod': source='com.techcommerce.orders' | detail-type='OrderCreated' | id=346cf5b5-63f7-4528-9c0b-f5eb980a4d24
+   └── [EVENTBRIDGE RULE MATCH] Regra 'rule-validador-pedidos' acionou Target Lambda: techcommerce-serverless-automation-prod-validadorPedidos
+START RequestId: 0be751ea-6cac-42ac-9fdf-dc2e59a57fd7 Version: $LATEST (techcommerce-serverless-automation-prod-validadorPedidos)
+2026-11-13T01:10:14.343Z	INFO	[VALIDADOR_PEDIDOS] Iniciando validação automática do pedido TC-2026-98412 | Cliente: Roberto Almeida | Valor Total: R$ 34500.00
+2026-11-13T01:10:14.344Z	WARNING	[VALIDADOR_PEDIDOS] Pedido TC-2026-98412 REJEITADO. Motivos: Estoque insuficiente para o produto 'Placa de Vídeo RTX 4090 24GB' (SKU GPU-RTX-4090).; Score de risco antifraude elevado (92/100). Requer revisão.
+
+[AMAZON EVENTBRIDGE] Evento recebido no barramento 'techcommerce-event-bus-prod': source='com.techcommerce.orders' | detail-type='OrderRejected' | id=73ce7abb-713a-4567-87d7-86c6de54c8c4
+   └── [EVENTBRIDGE RULE MATCH] Regra 'rule-notificador-equipes' acionou Target Lambda: techcommerce-serverless-automation-prod-notificadorEquipes
+START RequestId: 2b445f88-7b9b-4ee8-82d9-7afba4a04276 Version: $LATEST (techcommerce-serverless-automation-prod-notificadorEquipes)
+   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-atendimento-prod | MessageId=0b2d25d6-4c01-4e91-b17a-7f87ae09f92a | Subject='[Ação Necessária] Pedido Rejeitado TC-2026-98412'
+      └── Payload: [ALERTA ATENDIMENTO] Pedido TC-2026-98412 (R$ 34500.00) requer tratativa! Cliente: Roberto Almeida (roberto.almeida@email.com) | Motivo: Estoque insuficiente para o produto 'Placa de Vídeo RTX 4090 24GB' (SKU GPU-RTX-4090)., Score de risco antifraude elevado (92/100). Requer revisão.
+2026-11-13T01:10:14.344Z	INFO	[NOTIFICADOR_EQUIPES] Alerta de pedido rejeitado (TC-2026-98412) enviado ao Atendimento via Amazon SNS.
+END RequestId: 2b445f88-7b9b-4ee8-82d9-7afba4a04276
+REPORT RequestId: 2b445f88-7b9b-4ee8-82d9-7afba4a04276	Duration: 19.20 ms	Billed Duration: 20 ms	Memory Size: 256 MB	Max Memory Used: 74 MB
+END RequestId: 0be751ea-6cac-42ac-9fdf-dc2e59a57fd7
+REPORT RequestId: 0be751ea-6cac-42ac-9fdf-dc2e59a57fd7	Duration: 19.50 ms	Billed Duration: 20 ms	Memory Size: 256 MB	Max Memory Used: 74 MB
+
+>>> [CENÁRIO 4] Disparo Agendado no Amazon EventBridge Scheduler: cron(0 3 * * ? *)
+START RequestId: 79ba8bb6-2519-456c-964c-6deaaed03eb7 Version: $LATEST (techcommerce-serverless-automation-prod-geradorRelatoriosVendas)
+2026-11-13T01:10:14.345Z	INFO	[GERADOR_RELATORIOS] Disparo automático via 'EventBridge-Scheduler-Cron (cron(0 3 * * ? *))' (FECHAMENTO_DIARIO). Consultando Read Replica do Amazon RDS: techcommerce-db-read-replica.c9akciq32.sa-east-1.rds.amazonaws.com
+   [AWS S3 PUT_OBJECT] Bucket=techcommerce-relatorios-vendas-prod | Key=relatorios/2026/11/relatorio_vendas_2026-11-13.json | Size=1305 bytes | Durabilidade=99.999999999% (Multi-AZ)
+   [AWS S3 PUT_OBJECT] Bucket=techcommerce-relatorios-vendas-prod | Key=relatorios/2026/11/relatorio_vendas_2026-11-13.csv | Size=370 bytes | Durabilidade=99.999999999% (Multi-AZ)
+2026-11-13T01:10:14.348Z	INFO	[GERADOR_RELATORIOS] Relatórios salvos com sucesso no Amazon S3: s3://techcommerce-relatorios-vendas-prod/relatorios/2026/11/relatorio_vendas_2026-11-13.json | Receita Consolidada: R$ 10099.90
+   [AWS SNS PUBLISH] Topic=techcommerce-notificacoes-logistica-prod | MessageId=0818ef2f-eef6-4e40-9203-f521d1ad6e9a | Subject='[Relatório Diário S3] Fechamento de Vendas 2026-11-13'
+      └── Payload: [RELATÓRIO AUTOMÁTICO TECHCOMMERCE] Fechamento FECHAMENTO_DIARIO concluído sem intervenção manual. Pedidos Aprovados: 2 | Receita Total: R$ 10099.90 | Disponível em: s3://techcommerce-relatorios-vendas-prod/relatorios/2026/11/relatorio_vendas_2026-11-13.json
+END RequestId: 79ba8bb6-2519-456c-964c-6deaaed03eb7
+REPORT RequestId: 79ba8bb6-2519-456c-964c-6deaaed03eb7	Duration: 21.45 ms	Billed Duration: 22 ms	Memory Size: 512 MB	Max Memory Used: 92 MB
+
+====================================================================================================
+RESUMO DA EXECUÇÃO AUTOMATIZADA (EVIDÊNCIAS GERADAS):
+- Total de Eventos Processados no EventBridge: 9
+- Total de Notificações Publicadas no Amazon SNS: 6
+- Total de Objetos Gravados no Amazon S3: 2
+====================================================================================================

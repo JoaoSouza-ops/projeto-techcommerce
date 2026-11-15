@@ -1,0 +1,41 @@
+{
+  "version": "0",
+  "id": "e48a9c12-7f3b-4d91-b82a-918273645501",
+  "detail-type": "OrderCreated",
+  "source": "com.techcommerce.orders",
+  "account": "123456789012",
+  "time": "2026-11-12T20:30:00Z",
+  "region": "sa-east-1",
+  "resources": [],
+  "detail": {
+    "order_id": "TC-2026-98410",
+    "customer": {
+      "customer_id": "CUST-4421",
+      "name": "Mariana Costa Silva",
+      "email": "mariana.silva@email.com.br",
+      "city": "São Paulo",
+      "state": "SP"
+    },
+    "items": [
+      {
+        "sku": "NB-PRO-16GB",
+        "name": "Notebook UltraFin Pro 16GB SSD 1TB",
+        "quantity": 1,
+        "unit_price": 4899.90,
+        "stock_available": 45
+      },
+      {
+        "sku": "MS-WL-ERG",
+        "name": "Mouse Sem Fio Ergonômico",
+        "quantity": 2,
+        "unit_price": 150.00,
+        "stock_available": 120
+      }
+    ],
+    "total_amount": 5199.90,
+    "payment": {
+      "method": "PIX_INSTANTANEO",
+      "fraud_risk_score": 12
+    }
+  }
+}

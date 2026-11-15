@@ -1,0 +1,44 @@
+[
+  {
+    "MessageId": "96dc791c-4729-4302-ac55-271fa310f9ba",
+    "TopicArn": "arn:aws:sns:sa-east-1:123456789012:techcommerce-notificacoes-logistica-prod",
+    "Subject": "[Expedição] Pedido TC-2026-98410 - AGUARDANDO_SEPARACAO_LOGISTICA",
+    "Message": "[LOGÍSTICA TECHCOMMERCE] Pedido TC-2026-98410 liberado para expedição | Status: AGUARDANDO_SEPARACAO_LOGISTICA | Itens: 3 | Destino: São Paulo/SP",
+    "Timestamp": "2026-11-13T01:10:14.340591+00:00"
+  },
+  {
+    "MessageId": "eae7945a-b7e4-4dd5-be75-f61eaad8cc40",
+    "TopicArn": "arn:aws:sns:sa-east-1:123456789012:techcommerce-notificacoes-atendimento-prod",
+    "Subject": "[Atualização de Pedido] TC-2026-98410",
+    "Message": "[ATENDIMENTO TECHCOMMERCE] Status do pedido TC-2026-98410 do cliente Mariana Costa Silva (mariana.silva@email.com.br) atualizado para: AGUARDANDO_SEPARACAO_LOGISTICA.",
+    "Timestamp": "2026-11-13T01:10:14.340650+00:00"
+  },
+  {
+    "MessageId": "cbdc2ac8-baaf-47cd-81b4-679e26b16da6",
+    "TopicArn": "arn:aws:sns:sa-east-1:123456789012:techcommerce-notificacoes-logistica-prod",
+    "Subject": "[Expedição] Pedido TC-2026-98411 - AGUARDANDO_SEPARACAO_LOGISTICA",
+    "Message": "[LOGÍSTICA TECHCOMMERCE] Pedido TC-2026-98411 liberado para expedição | Status: AGUARDANDO_SEPARACAO_LOGISTICA | Itens: 2 | Destino: Curitiba/PR",
+    "Timestamp": "2026-11-13T01:10:14.342601+00:00"
+  },
+  {
+    "MessageId": "987a3185-3d2e-4b71-9f9e-38bc16c3d3a1",
+    "TopicArn": "arn:aws:sns:sa-east-1:123456789012:techcommerce-notificacoes-atendimento-prod",
+    "Subject": "[Atualização de Pedido] TC-2026-98411",
+    "Message": "[ATENDIMENTO TECHCOMMERCE] Status do pedido TC-2026-98411 do cliente Carlos Eduardo Souza (carlos.souza@empresa.com.br) atualizado para: AGUARDANDO_SEPARACAO_LOGISTICA.",
+    "Timestamp": "2026-11-13T01:10:14.342753+00:00"
+  },
+  {
+    "MessageId": "0b2d25d6-4c01-4e91-b17a-7f87ae09f92a",
+    "TopicArn": "arn:aws:sns:sa-east-1:123456789012:techcommerce-notificacoes-atendimento-prod",
+    "Subject": "[Ação Necessária] Pedido Rejeitado TC-2026-98412",
+    "Message": "[ALERTA ATENDIMENTO] Pedido TC-2026-98412 (R$ 34500.00) requer tratativa! Cliente: Roberto Almeida (roberto.almeida@email.com) | Motivo: Estoque insuficiente para o produto 'Placa de Vídeo RTX 4090 24GB' (SKU GPU-RTX-4090)., Score de risco antifraude elevado (92/100). Requer revisão.",
+    "Timestamp": "2026-11-13T01:10:14.344509+00:00"
+  },
+  {
+    "MessageId": "0818ef2f-eef6-4e40-9203-f521d1ad6e9a",
+    "TopicArn": "arn:aws:sns:sa-east-1:123456789012:techcommerce-notificacoes-logistica-prod",
+    "Subject": "[Relatório Diário S3] Fechamento de Vendas 2026-11-13",
+    "Message": "[RELATÓRIO AUTOMÁTICO TECHCOMMERCE] Fechamento FECHAMENTO_DIARIO concluído sem intervenção manual. Pedidos Aprovados: 2 | Receita Total: R$ 10099.90 | Disponível em: s3://techcommerce-relatorios-vendas-prod/relatorios/2026/11/relatorio_vendas_2026-11-13.json",
+    "Timestamp": "2026-11-13T01:10:14.348426+00:00"
+  }
+]

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Arial, sans-serif; }
+  body { width: 1400px; height: 800px; background: #f8fafc; color: #0f172a; padding: 24px; overflow: hidden; }
+  .canvas {
+    width: 100%; height: 100%; background: #ffffff; border: 2px solid #cbd5e1;
+    border-radius: 16px; padding: 22px 28px; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .title-bar {
+    border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .title-bar h1 { font-size: 22px; color: #0f172a; font-weight: 800; }
+  .title-bar span { background: #1e293b; color: #ff9900; padding: 6px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 700; }
+  .lanes { display: flex; flex-direction: column; gap: 18px; flex: 1; justify-content: center; }
+  .lane {
+    border: 2px solid #cbd5e1; border-radius: 14px; padding: 16px 20px; position: relative;
+    background: #f8fafc;
+  }
+  .lane-1 { border-color: #3b82f6; background: #eff6ff; }
+  .lane-2 { border-color: #10b981; background: #ecfdf5; }
+  .lane-header {
+    font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .lane-1 .lane-header { color: #1d4ed8; }
+  .lane-2 .lane-header { color: #047857; }
+  .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; align-items: stretch; }
+  .step {
+    background: #ffffff; border: 1.5px solid #94a3b8; border-radius: 10px; padding: 12px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .step-num {
+    display: inline-block; width: 24px; height: 24px; border-radius: 50%; background: #1d4ed8;
+    color: #fff; font-weight: 800; font-size: 12px; text-align: center; line-height: 24px; margin-bottom: 6px;
+  }
+  .lane-2 .step-num { background: #047857; }
+  .step h4 { font-size: 13.5px; color: #0f172a; margin-bottom: 5px; }
+  .step p { font-size: 11.5px; color: #334155; line-height: 1.38; }
+  .step-code {
+    margin-top: 8px; background: #0f172a; color: #38bdf8; padding: 5px 8px;
+    border-radius: 5px; font-family: Consolas, monospace; font-size: 10.5px;
+  }
+  .branch-box {
+    margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  .branch {
+    background: #ffffff; border-left: 5px solid #22c55e; padding: 9px 14px; border-radius: 8px;
+    font-size: 12px; color: #1e293b; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .branch.reject { border-left-color: #ef4444; }
+  .footer-note {
+    background: #0f172a; color: #f8fafc; padding: 12px 18px; border-radius: 10px;
+    display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+  }
+  .footer-note b { color: #ff9900; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="title-bar">
+    <h1>FLUXOGRAMA DE AUTOMAÇÃO SERVERLESS — EVENTOS EM TEMPO REAL E AGENDAMENTOS</h1>
+    <span>Zero Intervenção Manual • Escalabilidade Elástica</span>
+  </div>
+
+  <div class="lanes">
+    <!-- FLUXO 1: EVENTOS DA APLICAÇÃO EM TEMPO REAL -->
+    <div class="lane lane-1">
+      <div class="lane-header">
+        <span>⚡ FLUXO A: AUTOMAÇÃO ORIENTADA A EVENTOS DA APLICAÇÃO (TEMPO REAL — MILISSEGUNDOS)</span>
+        <span>Gatilho: Event Pattern JSON</span>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div>
+            <span class="step-num">1</span>
+            <h4>Ingestão do Pedido</h4>
+            <p>Cliente finaliza compra no e-commerce. A aplicação publica o evento no barramento customizado.</p>
+          </div>
+          <div class="step-code">EventBridge PutEvents<br>DetailType: OrderCreated</div>
+        </div>
+
+        <div class="step">
+          <div>
+            <span class="step-num">2</span>
+            <h4>Roteamento e Validação</h4>
+            <p>Regra do EventBridge aciona a função <b>λ validadorPedidos</b>. Verifica itens, estoque e score antifraude.</p>
+          </div>
+          <div class="step-code">Score ≤ 80 &amp; Estoque OK?<br>➔ Emite Novo Evento</div>
+        </div>
+
+        <div class="step">
+          <div>
+            <span class="step-num">3</span>
+            <h4>Persistência no RDS</h4>
+            <p>Se aprovado (<b>OrderValidated</b>), aciona <b>λ atualizadorStatus</b>, que grava no <b>Amazon RDS Multi-AZ</b>.</p>
+          </div>
+          <div class="step-code">UPDATE orders SET status=<br>'AGUARDANDO_SEPARACAO'</div>
+        </div>
+
+        <div class="step">
+          <div>
+            <span class="step-num">4</span>
+            <h4>Evento de Status</h4>
+            <p>Após gravar no RDS, a função publica <b>OrderStatusUpdated</b> no EventBridge para desacoplar os avisos.</p>
+          </div>
+          <div class="step-code">DetailType:<br>OrderStatusUpdated</div>
+        </div>
+
+        <div class="step">
+          <div>
+            <span class="step-num">5</span>
+            <h4>Notificação via SNS</h4>
+            <p>Regra aciona <b>λ notificadorEquipes</b>, que publica nos tópicos <b>Amazon SNS</b> de Logística e Atendimento.</p>
+          </div>
+          <div class="step-code">sns:Publish ➔ Expedição<br>sns:Publish ➔ Atendimento</div>
+        </div>
+      </div>
+
+      <div class="branch-box">
+        <div class="branch">
+          <b>✅ Caminho Feliz (OrderValidated ➔ OrderStatusUpdated):</b> Pedido liberado automaticamente para separação física na Logística e cliente notificado em menos de 50 ms.
+        </div>
+        <div class="branch reject">
+          <b>🛡️ Caminho de Exceção (OrderRejected):</b> Se faltar estoque ou score antifraude &gt; 80, o EventBridge aciona diretamente <b>λ notificadorEquipes</b> para alerta imediato ao Atendimento.
+        </div>
+      </div>
+    </div>
+
+    <!-- FLUXO 2: AGENDAMENTO PROGRAMADO (CRON / RATE) -->
+    <div class="lane lane-2">
+      <div class="lane-header">
+        <span>⏰ FLUXO B: AUTOMAÇÃO BASEADA EM AGENDAMENTOS PROGRAMADOS (BATCH SERVERLESS)</span>
+        <span>Gatilho: EventBridge Schedule (Cron / Rate)</span>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div>
+            <span class="step-num">1</span>
+            <h4>Gatilho Temporal</h4>
+            <p>O <b>EventBridge Scheduler</b> dispara automaticamente todo dia às 03:00 UTC (00:00 BRT) ou a cada 1h em promoções.</p>
+          </div>
+          <div class="step-code">cron(0 3 * * ? *)<br>rate(1 hour)</div>
+        </div>
+
+        <div class="step">
+          <div>
+            <span class="step-num">2</span>
+            <h4>Acionamento Lambda</h4>
+            <p>Inicia a função <b>λ geradorRelatoriosVendas</b> (512 MB RAM) sem necessidade de servidor dedicado ligado 24/7.</p>
+          </div>
+          <div class="step-code">Target: λ geradorRelatorios<br>Custo Ocioso = R$ 0,00</div>
+        </div>
+
+        <div class="step">
+          <div>
+            <span class="step-num">3</span>
+            <h4>Leitura Isolada (RDS)</h4>
+            <p>Consulta milhares de transações diretamente na <b>Read Replica do Amazon RDS</b>, preservando a CPU do banco primário.</p>
+          </div>
+          <div class="step-code">SELECT * FROM orders<br>(Read Replica Endpoint)</div>
+        </div>
+
+        <div class="step">
+          <div>
+            <span class="step-num">4</span>
+            <h4>Gravação no Amazon S3</h4>
+            <p>Gera os arquivos consolidados (JSON e CSV) e armazena no <b>Amazon S3</b> com 11 noves de durabilidade e Lifecycle.</p>
+          </div>
+          <div class="step-code">s3:PutObject (AES-256)<br>Standard ➔ IA ➔ Glacier</div>
+        </div>
+
+        <div class="step">
+          <div>
+            <span class="step-num">5</span>
+            <h4>Resumo Executivo</h4>
+            <p>Publica notificação no <b>Amazon SNS</b> informando receita total, ticket médio e link seguro do relatório no S3.</p>
+          </div>
+          <div class="step-code">sns:Publish ➔ Diretoria<br>&amp; CloudWatch Metrics</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <div><b>Observabilidade Transversal:</b> Todas as etapas registram logs estruturados no <b>Amazon CloudWatch Logs</b> com alarmes vinculados ao <b>Amazon SNS</b>.</div>
+    <div><b>IaC:</b> Provisionado via <code>serverless.yml</code> (<code>npx sls deploy</code>)</div>
+  </div>
+</div>
+</body>
+</html>

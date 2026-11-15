@@ -1,0 +1,39 @@
+{
+  "empresa": "TechCommerce E-Commerce S.A.",
+  "tipo_relatorio": "FECHAMENTO_DIARIO",
+  "data_referencia": "2026-11-13",
+  "gerado_em_utc": "2026-11-13T01:10:14.345778+00:00",
+  "origem_automacao": "EventBridge-Scheduler-Cron (cron(0 3 * * ? *))",
+  "fonte_dados_rds": "techcommerce-db-read-replica.c9akciq32.sa-east-1.rds.amazonaws.com",
+  "metricas_consolidadas": {
+    "total_pedidos_recebidos": 3,
+    "pedidos_validados_e_processados": 2,
+    "pedidos_rejeitados": 1,
+    "receita_bruta_aprovada_brl": 10099.9,
+    "ticket_medio_brl": 5049.95,
+    "taxa_aprovacao_percentual": 66.67
+  },
+  "transacoes_detalhadas": [
+    {
+      "order_id": "TC-2026-98410",
+      "customer_name": "Mariana Costa Silva",
+      "status": "AGUARDANDO_SEPARACAO_LOGISTICA",
+      "total_amount": 5199.9,
+      "updated_at": "2026-11-13T01:10:14.339994+00:00"
+    },
+    {
+      "order_id": "TC-2026-98411",
+      "customer_name": "Carlos Eduardo Souza",
+      "status": "AGUARDANDO_SEPARACAO_LOGISTICA",
+      "total_amount": 4900.0,
+      "updated_at": "2026-11-13T01:10:14.342224+00:00"
+    },
+    {
+      "order_id": "TC-2026-98412",
+      "customer_name": "Roberto Almeida",
+      "status": "REJEITADO_NA_VALIDACAO",
+      "total_amount": 34500.0,
+      "updated_at": "2026-11-13T01:10:14.343968+00:00"
+    }
+  ]
+}

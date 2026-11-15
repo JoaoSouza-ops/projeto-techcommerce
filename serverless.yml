@@ -1,0 +1,164 @@
+service: techcommerce-serverless-automation
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.12
+  stage: ${opt:stage, 'prod'}
+  region: sa-east-1 # Região América do Sul (São Paulo) - Baixa latência e conformidade LGPD (Unidade 2)
+  memorySize: 256
+  timeout: 15
+  logRetentionInDays: 30 # Retenção de logs no Amazon CloudWatch (Unidade 2)
+  environment:
+    STAGE: ${self:provider.stage}
+    EVENT_BUS_NAME: techcommerce-event-bus-${self:provider.stage}
+    REPORTS_BUCKET_NAME: techcommerce-relatorios-vendas-${self:provider.stage}
+    SNS_TOPIC_LOGISTICA_ARN: !Ref TopicoSnsLogistica
+    SNS_TOPIC_ATENDIMENTO_ARN: !Ref TopicoSnsAtendimento
+    RDS_PRIMARY_SECRET_ARN: arn:aws:secretsmanager:${aws:region}:${aws:accountId}:secret:techcommerce/rds/primary
+    RDS_READ_REPLICA_ENDPOINT: techcommerce-db-read-replica.c9akciq32.sa-east-1.rds.amazonaws.com
+
+  # Aplicação do Princípio do Menor Privilégio no AWS IAM (Unidade 1)
+  iam:
+    role:
+      statements:
+        - Sid: PermissaoPublicarEventosEventBridge
+          Effect: Allow
+          Action:
+            - events:PutEvents
+          Resource:
+            - !GetAtt TechCommerceEventBus.Arn
+        - Sid: PermissaoGravarRelatoriosS3
+          Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:PutObjectTagging
+          Resource:
+            - arn:aws:s3:::techcommerce-relatorios-vendas-${self:provider.stage}/*
+        - Sid: PermissaoPublicarNotificacoesSNS
+          Effect: Allow
+          Action:
+            - sns:Publish
+          Resource:
+            - !Ref TopicoSnsLogistica
+            - !Ref TopicoSnsAtendimento
+        - Sid: PermissaoLeituraSecretsRDS
+          Effect: Allow
+          Action:
+            - secretsmanager:GetSecretValue
+          Resource:
+            - arn:aws:secretsmanager:${aws:region}:${aws:accountId}:secret:techcommerce/rds/*
+
+functions:
+  # 1. Função Lambda: Validação Automática de Pedidos (Gatilho: Evento da Aplicação)
+  validadorPedidos:
+    handler: src/handler.validar_pedido
+    description: "Valida automaticamente pedidos recebidos (estoque, dados e antifraude) a partir de eventos OrderCreated no EventBridge."
+    events:
+      - eventBridge:
+          eventBus: !Ref TechCommerceEventBus
+          pattern:
+            source:
+              - com.techcommerce.orders
+            detail-type:
+              - OrderCreated
+
+  # 2. Função Lambda: Atualização de Status das Transações (Gatilho: Evento da Aplicação)
+  atualizadorStatus:
+    handler: src/handler.atualizar_status_transacao
+    description: "Atualiza o status da transação no Amazon RDS Multi-AZ quando o pedido é validado ou o pagamento é confirmado."
+    events:
+      - eventBridge:
+          eventBus: !Ref TechCommerceEventBus
+          pattern:
+            source:
+              - com.techcommerce.orders
+              - com.techcommerce.payments
+            detail-type:
+              - OrderValidated
+              - PaymentApproved
+
+  # 3. Função Lambda: Notificação de Logística e Atendimento (Gatilho: Evento da Aplicação)
+  notificadorEquipes:
+    handler: src/handler.notificar_equipes
+    description: "Envia notificações em tempo real via Amazon SNS para as equipes de Logística e Atendimento conforme status do pedido."
+    events:
+      - eventBridge:
+          eventBus: !Ref TechCommerceEventBus
+          pattern:
+            source:
+              - com.techcommerce.orders
+            detail-type:
+              - OrderStatusUpdated
+              - OrderRejected
+
+  # 4. Função Lambda: Geração de Relatórios de Vendas (Gatilho: Agendamento Programado Cron/Rate)
+  geradorRelatoriosVendas:
+    handler: src/handler.gerar_relatorio_vendas
+    description: "Consulta a Read Replica do Amazon RDS e gera relatórios consolidados de vendas no Amazon S3 sem intervenção manual."
+    timeout: 60
+    memorySize: 512
+    events:
+      # Execução diária automática às 03:00 UTC (00:00 Horário de Brasília)
+      - schedule:
+          name: techcommerce-relatorio-diario-vendas-${self:provider.stage}
+          description: "Disparo diário para consolidação de relatórios de vendas no S3"
+          rate: cron(0 3 * * ? *)
+          enabled: true
+          input:
+            tipo_relatorio: "FECHAMENTO_DIARIO"
+            origem_disparo: "EventBridge-Scheduler-Cron"
+      # Execução horária para acompanhamento de picos promocionais (ex: Black Friday)
+      - schedule:
+          name: techcommerce-relatorio-horario-pico-${self:provider.stage}
+          description: "Consolidação horária de métricas de vendas durante alta demanda"
+          rate: rate(1 hour)
+          enabled: true
+          input:
+            tipo_relatorio: "CONSOLIDADO_HORARIO_PICO"
+            origem_disparo: "EventBridge-Scheduler-Rate"
+
+resources:
+  Resources:
+    # Barramento de Eventos Customizado no Amazon EventBridge
+    TechCommerceEventBus:
+      Type: AWS::Events::EventBus
+      Properties:
+        Name: techcommerce-event-bus-${self:provider.stage}
+
+    # Bucket Amazon S3 com Governança, Criptografia e Lifecycle Policy (Unidade 2)
+    BucketRelatoriosVendas:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: techcommerce-relatorios-vendas-${self:provider.stage}
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+        LifecycleConfiguration:
+          Rules:
+            - Id: PoliticaCicloDeVidaRelatorios
+              Status: Enabled
+              Transitions:
+                - StorageClass: STANDARD_IA
+                  TransitionInDays: 30
+                - StorageClass: GLACIER
+                  TransitionInDays: 90
+
+    # Tópicos do Amazon SNS para Desacoplamento de Notificações (Unidade 2)
+    TopicoSnsLogistica:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: techcommerce-notificacoes-logistica-${self:provider.stage}
+        DisplayName: "TechCommerce - Alertas de Logística e Expedição"
+
+    TopicoSnsAtendimento:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: techcommerce-notificacoes-atendimento-${self:provider.stage}
+        DisplayName: "TechCommerce - Alertas de Atendimento ao Cliente"
